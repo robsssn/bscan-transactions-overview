@@ -98,7 +98,7 @@ function consultDolarAndProcessReport(path, pathAtrib) {
 
   console.log(report); 
 
-  fs.writeFileSync('relatório.txt', report, (err) => {
+  fs.writeFileSync('Relatório Transações Bscan.txt', report, (err) => {
     if (err) throw err;
   });
 
