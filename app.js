@@ -15,7 +15,7 @@ fs.createReadStream('data.csv')
     { separator: '\t' }))
   .on('data', (data) => results.push({dateTime:data.datetime ,
     txhash: data.txhash , 
-    bnbHistoricalUsd: parseFloat(data['historical $price/bnb']), 
+    bnbHistoricalUsd: data['historical $price/bnb'], 
     feeUsd: parseFloat(data['txnfee(usd)']) , 
     feeBnb: parseFloat(data['txnfee(bnb)'])  ,
     valueInBnb : parseFloat(data['value_in(bnb)']) , 
@@ -30,8 +30,9 @@ fs.createReadStream('data.csv')
       let totalSwapUsd = 0;
 
       results.map(r => {
+        
         //CALCULO DAS TAXAS
-        totalFeeUsd += parseFloat(r.feeUsd);
+        totalFeeUsd += r.feeUsd;
 
         //CALCULO DE DEPOSITOS
         totalTransferInUsd += r.valueInBnb * r.bnbHistoricalUsd;
@@ -49,7 +50,7 @@ fs.createReadStream('data.csv')
       });
 
       totalMovimentedUsd = totalTransferInUsd + totalSwapUsd + totalTransferOutUsd;
-      console.log(results);
+      //console.log(results);
 
    let report = 'Data ' + results[0].dateTime 
    + '\naté ' +  results[results.length-1].dateTime + ' \n'
@@ -58,7 +59,7 @@ fs.createReadStream('data.csv')
    + 'Total Swap: $'+ totalSwapUsd.toFixed(2) + ' \n'
    + 'Total Transfer OUT: $' + totalTransferOutUsd.toFixed(2) + ' \n'
    + 'Total Transfer IN: $' + totalTransferInUsd.toFixed(2) + ' \n'
-   + 'Total Taxa: $' + totalFeeUsd.toFixed(2) ;
+   + 'Total Taxa: $' + totalFeeUsd.toFixed(2);
 
    console.log(report);
    console.log('Análise completa, relatório gerado na raiz!');
