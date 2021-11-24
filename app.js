@@ -15,43 +15,50 @@ fs.createReadStream('data.csv')
     { separator: '\t' }))
   .on('data', (data) => results.push({dateTime:data.datetime ,
     txhash: data.txhash , 
-    bnbHistoricalUsd: data['historical $price/bnb'], 
-    feeUsd: data['txnfee(usd)'] , feeBnb: data['txnfee(bnb)']  ,
-    valueInBnb : data['value_in(bnb)'] , 
-    valueOutBnb : data['value_out(bnb)'], 
+    bnbHistoricalUsd: parseFloat(data['historical $price/bnb']), 
+    feeUsd: parseFloat(data['txnfee(usd)']) , 
+    feeBnb: parseFloat(data['txnfee(bnb)'])  ,
+    valueInBnb : parseFloat(data['value_in(bnb)']) , 
+    valueOutBnb : parseFloat(data['value_out(bnb)']), 
     status: data.status, 
     method: data.method}))
   .on('end', () => {
       let totalFeeUsd = 0;
       let totalMovimentedUsd = 0;
-      let totalTransferUsd = 0;
+      let totalTransferOutUsd = 0;
+      let totalTransferInUsd = 0;
       let totalSwapUsd = 0;
-      let transactionsMore0 = 0;
 
       results.map(r => {
+        //CALCULO DAS TAXAS
         totalFeeUsd += parseFloat(r.feeUsd);
-        if(r.valueOutBnb > 0){
-            transactionsMore0 += 1;
-            totalMovimentedUsd += parseFloat(r.valueOutBnb) * parseFloat(r.bnbHistoricalUsd);
-            if(r.method === "Transfer"){
-                totalTransferUsd += parseFloat(r.valueOutBnb) * parseFloat(r.bnbHistoricalUsd);
-            }
-            if(r.method === "Swap"){
-                totalSwapUsd += parseFloat(r.valueOutBnb) * parseFloat(r.bnbHistoricalUsd);
-            }
+
+        //CALCULO DE DEPOSITOS
+        totalTransferInUsd += r.valueInBnb * r.bnbHistoricalUsd;
+  
+        //CALCULO DE SAQUES
+        if(r.method === "Transfer"){
+          totalTransferOutUsd += r.valueOutBnb * r.bnbHistoricalUsd;    
         }
-       
+
+        //CALCULO DE ALIENAÇÂO
+        if(r.method === "Swap"){
+            totalSwapUsd += r.valueOutBnb * r.bnbHistoricalUsd;
+        }
+
       });
 
-   console.log(results);
+      totalMovimentedUsd = totalTransferInUsd + totalSwapUsd + totalTransferOutUsd;
+      console.log(results);
 
-   let report = 'Data ' + results[0].dateTime + ' até ' +  results[results.length-1].dateTime + ' \n'
+   let report = 'Data ' + results[0].dateTime 
+   + '\naté ' +  results[results.length-1].dateTime + ' \n'
    + 'Total de transações: ' + results.length + ' \n'
-   + 'Total transacões valor de saida BNB maior que 0: '+ transactionsMore0 + ' \n'
-   + 'Total movimentado USD$: ' + totalMovimentedUsd.toFixed(2) + ' \n'
-   + 'Total Swap USD$: '+ totalSwapUsd.toFixed(2) + ' \n'
-   + 'Total Transfer USD$: ' + totalTransferUsd.toFixed(2) + ' \n'
-   + 'Total taxa USD$: ' + totalFeeUsd.toFixed(2) ;
+   + 'Total Movimentado: $' + totalMovimentedUsd.toFixed(2) + ' \n'
+   + 'Total Swap: $'+ totalSwapUsd.toFixed(2) + ' \n'
+   + 'Total Transfer OUT: $' + totalTransferOutUsd.toFixed(2) + ' \n'
+   + 'Total Transfer IN: $' + totalTransferInUsd.toFixed(2) + ' \n'
+   + 'Total Taxa: $' + totalFeeUsd.toFixed(2) ;
 
    console.log(report);
    console.log('Análise completa, relatório gerado na raiz!');
