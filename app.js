@@ -11,63 +11,76 @@ try {
 const results = [];
 fs.createReadStream('data.csv')
   .pipe(csv({
-    mapHeaders: ({ header, index }) => header.toLowerCase()}, 
+    mapHeaders: ({ header, index }) => header.toLowerCase()
+  },
     { separator: '\t' }))
-  .on('data', (data) => results.push({dateTime:data.datetime ,
-    txhash: data.txhash , 
-    bnbHistoricalUsd: data['historical $price/bnb'], 
-    feeUsd: parseFloat(data['txnfee(usd)']) , 
-    feeBnb: parseFloat(data['txnfee(bnb)'])  ,
-    valueInBnb : parseFloat(data['value_in(bnb)']) , 
-    valueOutBnb : parseFloat(data['value_out(bnb)']), 
-    status: data.status, 
-    method: data.method}))
+  .on('data', (data) => results.push({
+    dateTime: data.datetime,
+    txhash: data.txhash,
+    bnbHistoricalUsd: data['historical $price/bnb'],
+    feeUsd: parseFloat(data['txnfee(usd)']),
+    feeBnb: parseFloat(data['txnfee(bnb)']),
+    valueInBnb: parseFloat(data['value_in(bnb)']),
+    valueOutBnb: parseFloat(data['value_out(bnb)']),
+    status: data.status,
+    method: data.method
+  }))
   .on('end', () => {
-      let totalFeeUsd = 0;
-      let totalMovimentedUsd = 0;
-      let totalTransferOutUsd = 0;
-      let totalTransferInUsd = 0;
-      let totalSwapUsd = 0;
-
-      results.map(r => {
-        
-        //CALCULO DAS TAXAS
-        totalFeeUsd += r.feeUsd;
-
-        //CALCULO DE DEPOSITOS
-        totalTransferInUsd += r.valueInBnb * r.bnbHistoricalUsd;
-  
-        //CALCULO DE SAQUES
-        if(r.method === "Transfer"){
-          totalTransferOutUsd += r.valueOutBnb * r.bnbHistoricalUsd;    
-        }
-
-        //CALCULO DE ALIENAÇÂO
-        if(r.method === "Swap"){
-            totalSwapUsd += r.valueOutBnb * r.bnbHistoricalUsd;
-        }
-
-      });
-
-      totalMovimentedUsd = totalTransferInUsd + totalSwapUsd + totalTransferOutUsd;
-      //console.log(results);
-
-   let report = 'Data ' + results[0].dateTime 
-   + '\naté ' +  results[results.length-1].dateTime + ' \n'
-   + 'Total de transações: ' + results.length + ' \n'
-   + 'Total Movimentado: $' + totalMovimentedUsd.toFixed(2) + ' \n'
-   + 'Total Swap: $'+ totalSwapUsd.toFixed(2) + ' \n'
-   + 'Total Transfer OUT: $' + totalTransferOutUsd.toFixed(2) + ' \n'
-   + 'Total Transfer IN: $' + totalTransferInUsd.toFixed(2) + ' \n'
-   + 'Total Taxa: $' + totalFeeUsd.toFixed(2);
-
-   console.log(report);
-   console.log('Análise completa, relatório gerado na raiz!');
-
-   fs.writeFileSync('relatório.txt',  report , (err) => {
-      if (err) throw err;
-    });
-
-    process.exit();
+    consultDolarAndProcessReport();
   });
+
+function consultDolarAndProcessReport() {
+  let totalFeeUsd = 0;
+  let totalMovimentedUsd = 0;
+  let totalTransferOutUsd = 0;
+  let totalTransferInUsd = 0;
+  let totalSwapUsd = 0;
+
+  results.map(r => {
+    //CALCULO DE TRANSFEFRENCIAS
+    if (r.method === "Transfer") {
+
+      //CALCULO DE DEPOSITOS/ENTRADAS
+      if (r.valueInBnb > 0) {
+        totalTransferInUsd += r.valueInBnb * r.bnbHistoricalUsd;
+
+        //CALCULO DE SAQUES/SAIDAS  
+      } else {
+        totalTransferOutUsd += r.valueOutBnb * r.bnbHistoricalUsd;
+      }
+
+    }
+
+    //CALCULO DE ALIENAÇÂO
+    if (r.method === "Swap") {
+      totalSwapUsd += r.valueOutBnb * r.bnbHistoricalUsd;
+    }
+
+    //CALCULO DAS TAXAS
+    totalFeeUsd += r.feeUsd;
+
+  });
+
+  totalMovimentedUsd = totalTransferInUsd + totalSwapUsd + totalTransferOutUsd;
+  console.log(results);
+
+  let report = 'Data ' + results[0].dateTime
+    + '\nAté ' + results[results.length - 1].dateTime + ' \n'
+    + 'Quantidade de transações: ' + results.length + ' \n'
+    + 'Entradas: $' + totalTransferInUsd.toFixed(2) + ' \n'
+    + 'Alienações: $' + totalSwapUsd.toFixed(2) + ' \n'
+    + 'Saidas: $' + totalTransferOutUsd.toFixed(2) + ' \n'
+    + 'Taxa: $' + totalFeeUsd.toFixed(2) + ' \n'
+    + 'Movimentado: $' + totalMovimentedUsd.toFixed(2);
+
+  console.log(report);
+  console.log('Análise completa, relatório gerado na raiz!');
+
+  fs.writeFileSync('relatório.txt', report, (err) => {
+    if (err) throw err;
+  });
+
+}
+
+
 
